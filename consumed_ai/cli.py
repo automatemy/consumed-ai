@@ -217,17 +217,21 @@ def key():
 
 
 @key.command("store")
-@click.argument("provider", type=click.Choice(["anthropic", "openai", "groq", "google"]))
+@click.argument("provider", type=click.Choice(["consumed-ai", "anthropic", "openai", "groq", "google"]))
 @click.option("--api-key", prompt=True, hide_input=True, help="Your API key")
 def key_store(provider: str, api_key: str):
-    """Store an LLM API key for BYOK."""
+    """Store an API key. Use 'consumed-ai' for your platform API key, or a provider name for BYOK."""
     from consumed_ai.vault_local import LocalVault
 
     vault = LocalVault(data_dir=str(_get_data_dir()))
-    vault.store(f"{provider}_api_key", api_key)
+    key_name = "consumed_ai_api_key" if provider == "consumed-ai" else f"{provider}_api_key"
+    vault.store(key_name, api_key)
 
     from rich.console import Console
-    Console().print(f"[green]Stored {provider} key[/green] (encrypted locally)")
+    if provider == "consumed-ai":
+        Console().print("[green]Platform API key stored[/green] — cloud features now available")
+    else:
+        Console().print(f"[green]Stored {provider} key[/green] (encrypted locally)")
 
 
 @key.command("list")

@@ -113,16 +113,23 @@ def create_app(
         if not shortcode:
             raise HTTPException(400, "Empty shortcode")
 
-        # Try cloud execution
+        # Try cloud execution (authenticated via API key)
         if app.state.cloud_url and app.state.cloud_connected:
             try:
+                headers = {}
+                api_key = app.state.vault.get("consumed_ai_api_key")
+                if api_key:
+                    headers["X-API-Key"] = api_key
                 async with httpx.AsyncClient(timeout=30) as client:
                     resp = await client.post(
                         f"{app.state.cloud_url}/api/execute",
                         json={"shortcode": shortcode, "user_id": body.user_id},
+                        headers=headers,
                     )
                     if resp.status_code == 200:
                         return resp.json()
+                    elif resp.status_code == 401:
+                        return {"success": False, "error": "API key required. Run: consumed-ai key store consumed-ai"}
             except Exception as e:
                 logger.warning(f"Cloud execution failed: {e}")
 
